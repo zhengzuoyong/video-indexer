@@ -71,7 +71,7 @@
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
           <execution>
-            <id>打包(内含依赖)</id>
+            <id>A S S E M B L E</id>
             <phase>compile</phase>
             <goals>
               <goal>single</goal>

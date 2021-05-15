@@ -1,8 +1,19 @@
 if (typeof videoB == 'undefined') {
+    isValidVideoElement = function (video) {
+        if (video.src != null)
+            return true;
+        var c = video.children;
+        for (let k = 0; k < c.length; k++) {
+            if (c[k].tagName == 'source' && c[k].src != null) {
+                return true;
+            }
+        }
+        return false;
+    };
     searchVideoByIndex = function (doc, index) {
         var videos = doc.getElementsByTagName('video');
         for (let i = 0; i < videos.length; i++) {
-            if (videos[i].src != null) {
+            if (isValidVideoElement(videos[i])) {
                 if (videoIndex == index) {
                     return videos[i];
                 }
@@ -20,9 +31,9 @@ if (typeof videoB == 'undefined') {
     };
 }
 videoIndex = 0;
-videoB = searchVideoByIndex(document, index);
+videoB = searchVideoByIndex(document, indexPlaceholder);
 if (videoB != null) {
-    videoB.currentTime = startTime;
+    videoB.currentTime = startTimePlaceHolder;
     videoB.scrollIntoViewIfNeeded();
     videoB.play();
 }

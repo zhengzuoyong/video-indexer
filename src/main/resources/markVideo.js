@@ -1,8 +1,19 @@
 if (typeof videoBookmark == 'undefined') {
+    isValidVideoElement = function (video) {
+        if (video.src != null)
+            return true;
+        var c = video.children;
+        for (let k = 0; k < c.length; k++) {
+            if (c[k].tagName == 'source' && c[k].src != null) {
+                return true;
+            }
+        }
+        return false;
+    };
     searchAllVideos = function (doc) {
         var videos = doc.getElementsByTagName('video');
         for (let i = 0; i < videos.length; i++) {
-            if (videos[i].src != null) {
+            if (isValidVideoElement(videos[i])) {
                 if (videos[i].paused)
                     pausedVideos.push({ videoElement: videos[i], index: videoIndex });
                 else

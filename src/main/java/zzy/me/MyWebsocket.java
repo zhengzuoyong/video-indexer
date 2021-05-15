@@ -1,5 +1,6 @@
 package zzy.me;
 
+import java.io.*;
 import java.net.*;
 import java.net.http.*;
 import java.net.http.HttpRequest.*;
@@ -15,6 +16,9 @@ public class MyWebsocket {
     static boolean validBookmark = false; // 导航到新页面时，是否是从书签导航而来
     static boolean markVideoStart = true; // 是否标记视频开始时间？
 
+    static String scriptMarkVideo;  // 标记视频（制作书签）的JS语句段
+    static String scriptPlayVideo;  // 播放书签的JS语句段
+
     // 当前websocket连接对象的要素（视频书签）：网址、<video>元素的网页索引、startTime、endTime属性、书签生成时间
     static String url = null;
     static int index = -1;
@@ -22,6 +26,30 @@ public class MyWebsocket {
     static int endTime = -1;
     static String detail = null;
     static String creationTime = null;
+
+    static {
+        try {
+            Class<?> clazz = Class.forName("zzy.me.MyWebsocket");
+            ClassLoader cLoader = clazz.getClassLoader();
+
+            // 读取markVideo.js
+            InputStream is = cLoader.getResourceAsStream("markVideo.js");
+            BufferedInputStream bis = new BufferedInputStream(is);
+            byte[] bytes = bis.readAllBytes();
+            scriptMarkVideo = new String(bytes);
+            scriptMarkVideo = scriptMarkVideo.replace("\r\n", " ");
+
+            // 读取playVideo.js
+            is = cLoader.getResourceAsStream("playVideo.js");
+            bis = new BufferedInputStream(is);
+            bytes = bis.readAllBytes();
+            scriptPlayVideo = new String(bytes);
+            scriptPlayVideo = scriptPlayVideo.replace("\r\n", " ");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     // 将时刻/时间格式化成钟表格式
     static String formatTime(int time) {
@@ -133,7 +161,7 @@ public class MyWebsocket {
 
     // 取得视频信息
     public static void markVideo() {
-        String script = "if (typeof videoBookmark == 'undefined') {searchAllVideos = function (doc) {var videos = doc.getElementsByTagName('video');for (let i = 0; i < videos.length; i++) { if (videos[i].src !=null) { if (videos[i].paused) pausedVideos.push({    videoElement: videos[i], index: videoIndex }); else liveVideos.push({ videoElement: videos[i], index: videoIndex });    videoIndex++; } } var iframes=doc.getElementsByTagName('iframe'); for (let j=0; j < iframes.length; j++) { var    subDoc=iframes[j].contentWindow.document; searchAllVideos(subDoc); } }; } liveVideos=[]; pausedVideos=[];    videoIndex=0; searchAllVideos(document); if (liveVideos.length==1) { videoA=liveVideos[0];    videoBookmark=window.location.href + ',' + videoA.index + ',' + videoA.videoElement.currentTime; } else if    (liveVideos.length==0 && pausedVideos.length==1) { videoA=pausedVideos[0]; videoBookmark=window.location.href + ','    + videoA.index + ',' + videoA.videoElement.currentTime; } else { videoBookmark=null; }";
+        String script = scriptMarkVideo;
         JSONObject jsonParams = new JSONObject();
         jsonParams.put("expression", script);
         webSocket.sendText(buildRequest(4, "Runtime.evaluate", jsonParams), true);
@@ -159,9 +187,9 @@ public class MyWebsocket {
         frame.prompt("1.如果未播放,直接在视频上单击播放;2.如果跳转位置不对(网站有记忆功能),请再次双击书签");
 
         // 播放视频
-        String script = "if (typeof videoB == 'undefined') {searchVideoByIndex = function (doc, index) {var videos = doc.getElementsByTagName('video');for (let i = 0; i < videos.length; i++) { if (videos[i].src !=null) { if (videoIndex==index) { return videos[i]; }    videoIndex++; } } var iframes=doc.getElementsByTagName('iframe'); for (let j=0; j < iframes.length; j++) { var    subDoc=iframes[j].contentWindow.document; var video=searchVideoByIndex(subDoc, index); if (video !=null) return    video; } return null; }; } videoIndex=0; videoB=searchVideoByIndex(document, "
-                + index + "); if (videoB !=null) {    videoB.currentTime=" + startTime
-                + "; videoB.scrollIntoViewIfNeeded(); videoB.play(); }";
+        String script = scriptPlayVideo;
+        script = script.replace("indexPlaceholder", String.valueOf(index));
+        script = script.replace("startTimePlaceHolder", String.valueOf(startTime));
         JSONObject jsonParams = new JSONObject();
         jsonParams.put("expression", script);
         webSocket.sendText(buildRequest(5, "Runtime.evaluate", jsonParams), true);
